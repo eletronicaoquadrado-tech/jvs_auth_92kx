@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 class Assistant(Agent):
     def __init__(self, chat_ctx: ChatContext = None):
         super().__init__(
+
             instructions=AGENT_INSTRUCTION,
             llm=google.beta.realtime.RealtimeModel(
                 voice="Charon",
@@ -36,6 +37,8 @@ async def entrypoint(ctx: agents.JobContext):
         logging.info(f"Chat context messages: {chat_ctx.items}")
 
         for item in chat_ctx.items:
+            if not hasattr(item, 'content') or item.content is None:
+              continue
             content_str = ''.join(item.content) if isinstance(item.content, list) else str(item.content)
 
             if memory_str and memory_str in content_str:
