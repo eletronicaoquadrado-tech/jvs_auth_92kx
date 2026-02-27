@@ -41,7 +41,7 @@ async def entrypoint(ctx: agents.JobContext): # Função de entrada assíncrona 
     await ctx.connect()
 
     await session.generate_reply( 
-        instructions=SESSION_INSTRUCTION, # Instruções específicas para a sessão
+        instructions=SESSION_INSTRUCTION + "\nCumprimente o usuário de forma breve e confiante." # Instruções específicas para a sessão
     )
 
 
