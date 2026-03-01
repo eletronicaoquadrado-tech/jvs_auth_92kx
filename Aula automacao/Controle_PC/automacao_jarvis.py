@@ -14,7 +14,8 @@ class JarvisControl:
             "youtube": "https://www.youtube.com",
             "github": "https://www.github.com",
             "chatgpt": "https://chat.openai.com",
-            "google": "https://www.google.com"
+            "google": "https://www.google.com",
+            "instagram": "https://www.instagram.com"
         }
 
     # --- Manipulação de Arquivos e Pastas ---
