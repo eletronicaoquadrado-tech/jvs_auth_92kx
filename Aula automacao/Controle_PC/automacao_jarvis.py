@@ -22,6 +22,7 @@ class JarvisControl:
 
     def cria_pasta(self, caminho):
         try:
+            caminho = caminho.strip('\'"')
             caminho = os.path.expanduser(caminho)
             # Se o caminho não for absoluto, salva na Área de Trabalho
             if not os.path.isabs(caminho):
@@ -36,6 +37,7 @@ class JarvisControl:
 
     def deletar_arquivo(self, caminho):
         try:
+            caminho = caminho.strip('\'"')
             caminho = os.path.expanduser(caminho)
             if not os.path.isabs(caminho):
                 desktop = os.path.join(os.path.expanduser('~'), 'Desktop')
@@ -56,6 +58,7 @@ class JarvisControl:
 
     def limpar_diretorio(self, caminho):
         try:
+            caminho = caminho.strip('\'"')
             if os.path.exists(caminho):
                 for item in os.listdir(caminho):
                     item_path = os.path.join(caminho, item)
@@ -70,6 +73,8 @@ class JarvisControl:
 
     def mover_item(self, origem, destino):
         try:
+            origem = origem.strip('\'"')
+            destino = destino.strip('\'"')
             shutil.move(origem, destino)
             return f"Item movido de {origem} para {destino}."
         except Exception as e:
@@ -77,6 +82,8 @@ class JarvisControl:
 
     def copiar_item(self, origem, destino):
         try:
+            origem = origem.strip('\'"')
+            destino = destino.strip('\'"')
             if os.path.isdir(origem):
                 shutil.copytree(origem, destino)
             else:
@@ -87,6 +94,8 @@ class JarvisControl:
 
     def renomear_item(self, caminho, novo_nome):
         try:
+            caminho = caminho.strip('\'"')
+            novo_nome = novo_nome.strip('\'"')
             diretorio = os.path.dirname(caminho)
             novo_caminho = os.path.join(diretorio, novo_nome)
             os.rename(caminho, novo_caminho)
@@ -96,6 +105,7 @@ class JarvisControl:
 
     def organizar_pasta(self, caminho):
         try:
+            caminho = caminho.strip('\'"')
             extensoes = {
                 'Imagens': ['.jpg', '.jpeg', '.png', '.gif', '.bmp'],
                 'Documentos': ['.pdf', '.doc', '.docx', '.txt', '.xlsx', '.pptx'],
@@ -127,6 +137,7 @@ class JarvisControl:
 
     def compactar_pasta(self, caminho):
         try:
+            caminho = caminho.strip('\'"')
             nome_zip = caminho + ".zip"
             shutil.make_archive(caminho, 'zip', caminho)
             return f"Pasta compactada em: {nome_zip}"
