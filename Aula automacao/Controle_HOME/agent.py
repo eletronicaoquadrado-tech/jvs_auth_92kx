@@ -26,6 +26,19 @@ except ImportError:
 
 from automacao_jarvis import JarvisControl
 
+
+# ─────────────────────────────────────────
+# VOICE MONKEY — Carregamento "lazy"
+# ─────────────────────────────────────────
+_voicemonkey = None
+
+def get_voicemonkey():
+    global _voicemonkey
+    if _voicemonkey is None:
+        from integrations.voicemonkey import VoiceMonkey
+        _voicemonkey = VoiceMonkey()
+    return _voicemonkey
+
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
@@ -75,7 +88,6 @@ async def _abrir_chrome_com_cdp(url: str = "about:blank"):
             pass
     # Fecha o Chrome e reabre com depuração
    # subprocess.run(["taskkill", "/f", "/im", "chrome.exe"], capture_output=True)
-    #subprocess.run(["taskkill", "/f", "/im", "chrome.exe"], capture_output=True)
     await asyncio.sleep(1)
     subprocess.Popen([CHROME_PATH, f"--remote-debugging-port=9222", url])
     await asyncio.sleep(2.5)
@@ -98,6 +110,7 @@ class Assistant(Agent, llm.ToolContext):
             chat_ctx=chat_ctx,
         )
         self.jarvis_control = JarvisControl()
+
 
     # ────────────────────────────────
     # MÍDIA E WEB
@@ -174,7 +187,7 @@ class Assistant(Agent, llm.ToolContext):
 
     @agents.function_tool
     async def fechar_programa(self, programa: str):
-        """Fecha um programa pelo nome (ex: 'chrome', 'notepad', 'spotify')."""
+        """Fecha um programa pelo nome (ex: 'chrome', 'notepad')."""
         exe = programa if programa.lower().endswith(".exe") else f"{programa}.exe"
         res = subprocess.run(["taskkill", "/f", "/im", exe], capture_output=True)
         if res.returncode == 0:
@@ -271,8 +284,50 @@ class Assistant(Agent, llm.ToolContext):
 
     @agents.function_tool
     async def abrir_aplicativo(self, nome_app: str):
-        """Abre aplicativos conhecidos pelo nome (ex: 'spotify', 'vscode', 'calculadora')."""
+        """Abre aplicativos conhecidos pelo nome (ex: 'chrome', 'vscode', 'calculadora')."""
         return self.jarvis_control.abrir_aplicativo(nome_app)
+
+    # ────────────────────────────────
+    # CASA INTELIGENTE (Voice Monkey)
+    # ────────────────────────────────
+
+    @agents.function_tool
+    async def controlar_casa(self, dispositivo: str, acao: str = "ligar") -> str:
+        """
+        Controla dispositivos inteligentes da casa (luzes, ventilador, ar-condicionado, etc.)
+        via Voice Monkey + Alexa.
+        Use quando o usuário pedir para ligar ou desligar algo em casa.
+
+        Args:
+            dispositivo: Nome do dispositivo (ex: 'ventilador', 'luz', 'ar', 'tomada')
+            acao: O que fazer — 'ligar' (padrão) ou 'desligar'
+        """
+        vm   = get_voicemonkey()
+        base = dispositivo.lower().replace(" ", "")
+        acao = acao.lower().strip()
+
+        base_msg = "ligar" if acao == "ligar" else "desligar"
+        print(f"DEBUG: controlar_casa chamado para {dispositivo} com acao {acao}")
+        logger.info(f"Tentando {base_msg} dispositivo: {dispositivo}")
+
+        # Filtra as variações baseadas na ação pretendida
+        if acao == "ligar":
+            variacoes = [f"ligar-{base}", f"ligar{base}", base, f"{base}-on", f"{base}-ligar", f"ligar_{base}"]
+        else:
+            variacoes = [f"desligar-{base}", f"desligar{base}", f"{base}-off", f"{base}-desligar", f"desligar_{base}"]
+
+        # Tenta as variações na ordem
+        for tentativa in variacoes:
+            logger.debug(f"VoiceMonkey: tentando ID '{tentativa}'...")
+            resultado = await asyncio.to_thread(vm.trigger_monkey, tentativa)
+            if "sucesso" in resultado:
+                return f"Comando '{acao}' para '{dispositivo}' executado com sucesso (ID: {tentativa})."
+
+        return (
+            f"Não consegui {acao} o {dispositivo}. "
+            f"Tentei os IDs: {', '.join(variacoes)}. "
+            f"Verifique se o Monkey existe no painel do Voice Monkey."
+        )
 
 
 # ─────────────────────────────────────────
@@ -359,9 +414,13 @@ async def entrypoint(ctx: agents.JobContext):
 
     ctx.add_shutdown_callback(shutdown_hook)
 
+    # Injeta a instrução inicial para o agente se apresentar
     await session.generate_reply(
-        instructions=SESSION_INSTRUCTION + "\nCumprimente o usuário de forma natural e confiante."
+        instructions=SESSION_INSTRUCTION + "\nCumprimente o usuário de forma natural e confiante. Pergunte como pode ajudar hoje."
     )
+
+    # Aguarda o encerramento do worker de forma segura
+    # (Removido o exit imediato para permitir interação contínua no console)
 
 
 if __name__ == "__main__":
